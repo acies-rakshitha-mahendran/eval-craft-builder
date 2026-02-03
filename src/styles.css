@@ -40,7 +40,7 @@ html {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Dark mode roots */
+/* Dark mode rootss */
 body[data-theme="dark"],
 body[data-theme="dark"] html {
   background: #1a1a1a;
