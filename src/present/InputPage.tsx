@@ -1,15 +1,18 @@
 // src/present/InputPage.tsx
 import React from "react";
-import { InputsRenderer } from "./InputsRenderer";
+import { InputsRenderer, type VADInputValue } from "./InputsRenderer";
 
 type Props = {
   vadNames: string[]; // Array of VAD names from build layout
   onCalculate: () => void;
+  // Bubble up raw input values so PresentApp can perform calculations
+  onInputsChange?: (inputs: VADInputValue) => void;
 };
 
 export const InputPage: React.FC<Props> = ({
   vadNames = [],
   onCalculate,
+  onInputsChange,
 }) => {
   return (
     <div className="present-body" style={{ padding: "1.5rem" }}>
@@ -29,9 +32,7 @@ export const InputPage: React.FC<Props> = ({
         </p>
 
         {vadNames && vadNames.length > 0 ? (
-          <InputsRenderer
-            vadNames={vadNames}
-          />
+          <InputsRenderer vadNames={vadNames} onInputsChange={onInputsChange} />
         ) : (
           <div style={{ padding: "2rem", textAlign: "center", opacity: 0.8 }}>
             No VADs selected. Please go back and select VADs from the Input screen.

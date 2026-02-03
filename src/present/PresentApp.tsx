@@ -1,16 +1,12 @@
 // src/present/PresentApp.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import { loadBuildConfig, calculateFromEval } from "../api";
-import type {
-  ProjectBuildConfig,
-  ThemeConfig,
-  VADId,
-  VADInputValues,
-} from "../types";
+import { loadBuildConfig } from "../api";
+import type { ProjectBuildConfig, ThemeConfig, VADId } from "../types";
 import { VAD_INPUT_CONFIGS } from "../vadInputs";
 import { HomePage } from "./HomePage";
 import { InputPage } from "./InputPage";
 import { ResultsPage } from "./ResultsPage";
+import type { VADInputValue } from "./InputsRenderer";
 
 type PresentTab = "home" | "vads" | "results";
 
@@ -75,10 +71,8 @@ export const PresentApp: React.FC = () => {
   const [config, setConfig] = useState<ProjectBuildConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<Record<string, number> | null>(null);
-  const [inputValues] = useState<Record<VADId, VADInputValues>>({} as Record<
-    VADId,
-    VADInputValues
-  >);
+  // Raw inputs coming from the InputsRenderer (keyed by VAD name and field index)
+  const [inputValues, setInputValues] = useState<VADInputValue>({});
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -116,9 +110,89 @@ export const PresentApp: React.FC = () => {
     return vadNames;
   }, [vadLayout, KNOWN_VADS]);
 
-  const handleCalculate = async () => {
-    if (selectedVADs.length === 0) return;
-    const res = await calculateFromEval(selectedVADs, inputValues);
+  // Simple helper to safely extract a number from InputsRenderer's structure
+  const getFieldNumber = (
+    fields: { [fieldIndex: number]: { value: string | number; uom: string } },
+    index: number
+  ): number => {
+    const entry = fields[index];
+    if (!entry) return 0;
+    const raw = entry.value;
+    const n = typeof raw === "number" ? raw : parseFloat(String(raw ?? ""));
+    return isNaN(n) ? 0 : n;
+  };
+
+  const handleCalculate = () => {
+    if (!inputValues || Object.keys(inputValues).length === 0) {
+      return;
+    }
+
+    const res: Record<string, number> = {};
+
+    Object.entries(inputValues).forEach(([vadName, fields]) => {
+      const f = fields as { [fieldIndex: number]: { value: string | number; uom: string } };
+      let total = 0;
+
+      // Per‑VAD demo formulas based on your descriptions
+      switch (vadName) {
+        case "Reduced Electricity Consumption": {
+          // 10% reduction on current annual electricity consumption
+          const current = getFieldNumber(f, 0);
+          total = current * 0.1;
+          break;
+        }
+
+        case "Reduced Maintenance Cost": {
+          // 15% cost reduction on current maintenance contract
+          const maintenance = getFieldNumber(f, 0);
+          total = maintenance * 0.15;
+          break;
+        }
+
+        case "Increased Ticket Sales": {
+          // Assume each additional patron is worth $20 this year
+          const patrons = getFieldNumber(f, 0);
+          total = patrons * 20;
+          break;
+        }
+
+        case "Avoided Revenue Loss": {
+          // Revenue per show * number of at‑risk shows annually
+          const revenuePerShow = getFieldNumber(f, 0);
+          const atRiskShows = getFieldNumber(f, 1);
+          total = revenuePerShow * atRiskShows;
+          break;
+        }
+
+        case "Increase in Recyclability": {
+          // Assume each HVAC unit recycled avoids "100" impact units
+          const hvacUnits = getFieldNumber(f, 0);
+          total = hvacUnits * 100;
+          break;
+        }
+
+        case "Lower Material Input Emissions": {
+          // Assume each HVAC unit avoids "250" kg of embodied carbon
+          const hvacUnits = getFieldNumber(f, 0);
+          total = hvacUnits * 250;
+          break;
+        }
+
+        default: {
+          // Fallback: sum all numeric fields
+          total = Object.values(f).reduce((acc, field) => {
+            const raw = field.value;
+            const n =
+              typeof raw === "number" ? raw : parseFloat(String(raw ?? ""));
+            return acc + (isNaN(n) ? 0 : n);
+          }, 0);
+          break;
+        }
+      }
+
+      res[vadName] = total;
+    });
+
     setResults(res);
     setActive("results");
   };
@@ -182,7 +256,12 @@ export const PresentApp: React.FC = () => {
 
       {active === "home" && <HomePage layout={homeLayout} />}
       {active === "vads" && (
-        <InputPage vadNames={selectedVADs} onCalculate={handleCalculate} />
+        <InputPage
+          vadNames={selectedVADs}
+          onCalculate={handleCalculate}
+          // Capture live input changes from the InputsRenderer so we can calculate later
+          onInputsChange={setInputValues}
+        />
       )}
       {active === "results" && <ResultsPage results={results} layout={resultsLayout} />}
     </div>

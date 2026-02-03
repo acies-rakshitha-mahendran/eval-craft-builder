@@ -1,6 +1,7 @@
 // src/builder/craft/craftNodes.tsx
 import React from "react";
 import { useNode } from "@craftjs/core";
+import { ResultsContext } from "../../resultsContext";
 
 type BaseProps = {
   children?: React.ReactNode;
@@ -338,11 +339,28 @@ export const VADBlock: React.FC<{ title?: string; vadId?: string; backgroundColo
 };
 
 // Result Card
-export const ResultCard: React.FC<{ label?: string; value?: string }> = ({
+export const ResultCard: React.FC<{ label?: string; value?: string; resultKey?: string }> = ({
   label = "Enter metric label",
   value = "Enter value",
+  resultKey,
 }) => {
   const { connectors } = useNode();
+  const results = React.useContext(ResultsContext);
+
+  // Prefer an explicit resultKey if provided, otherwise fall back to the label.
+  const key = (resultKey || label || "").trim();
+
+  let displayValue: string = value;
+
+  if (results && key) {
+    const numericResults = results;
+    if (Object.prototype.hasOwnProperty.call(numericResults, key)) {
+      const numeric = numericResults[key];
+      displayValue = numeric.toLocaleString(undefined, {
+        maximumFractionDigits: 2,
+      });
+    }
+  }
   
   return (
     <div
@@ -358,7 +376,7 @@ export const ResultCard: React.FC<{ label?: string; value?: string }> = ({
       }}
     >
       <div style={{ fontSize: 12, color: "#9ca3af" }}>{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 600 }}>{value}</div>
+      <div style={{ fontSize: 24, fontWeight: 600 }}>{displayValue}</div>
     </div>
   );
 };

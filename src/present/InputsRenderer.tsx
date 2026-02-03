@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { VAD_INPUT_CONFIGS } from "../vadInputs";
 
-interface VADInputValue {
+export interface VADInputValue {
   [vadName: string]: {
     [fieldIndex: number]: {
       value: string | number;

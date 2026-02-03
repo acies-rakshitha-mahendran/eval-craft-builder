@@ -3,6 +3,7 @@ import React from "react";
 import { Editor, Frame } from "@craftjs/core";
 import { craftResolver } from "../builder/craft/craftResolver";
 import type { CraftLayout, EvalResults } from "../types";
+import { ResultsContext } from "../resultsContext";
 
 type Props = {
   results: EvalResults | null;
@@ -22,12 +23,21 @@ export const ResultsPage: React.FC<Props> = ({ results, layout }) => {
   const keys = hasResults ? Object.keys(results as EvalResults) : [];
 
   return (
-    <div className="present-body" style={{ padding: "1rem", gap: "1.25rem" }}>
-      {/* Results layout built in the Results builder */}
+    <div
+      className="present-body"
+      style={{
+        padding: "1rem",
+        gap: "1.25rem",
+        overflowY: "auto",
+      }}
+    >
+      {/* Results layout built in the Results builder, with live numeric values injected via context */}
       <div className="glass-card" style={{ padding: 0 }}>
-        <Editor enabled={false} resolver={craftResolver}>
-          <Frame data={layout} />
-        </Editor>
+        <ResultsContext.Provider value={results}>
+          <Editor enabled={false} resolver={craftResolver}>
+            <Frame data={layout} />
+          </Editor>
+        </ResultsContext.Provider>
       </div>
 
       {/* Numeric summary + debug view */}
