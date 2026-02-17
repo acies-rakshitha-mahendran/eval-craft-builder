@@ -14,7 +14,7 @@ type PresentTab = "home" | "vads" | "results";
 const applyTheme = (theme: ThemeConfig | null) => {
   if (!theme) return;
   const body = document.body;
-  
+
   if (theme.mode === "light") {
     body.removeAttribute("data-theme");
     body.style.backgroundColor = "#f5f5f5";
@@ -24,17 +24,17 @@ const applyTheme = (theme: ThemeConfig | null) => {
     body.style.backgroundColor = "#1a1a1a";
     body.style.color = "#ffffff";
   }
-  
+
   // Remove old style if it exists
   const existingStyle = document.getElementById("theme-style");
   if (existingStyle) {
     existingStyle.remove();
   }
-  
+
   // Create and inject CSS rule for canvas frames
   const styleEl = document.createElement("style");
   styleEl.id = "theme-style";
-  
+
   if (theme.mode === "light") {
     styleEl.textContent = `
       .canvas-frame {
@@ -62,7 +62,7 @@ const applyTheme = (theme: ThemeConfig | null) => {
       }
     `;
   }
-  
+
   document.head.appendChild(styleEl);
 };
 
@@ -110,7 +110,7 @@ export const PresentApp: React.FC = () => {
     return vadNames;
   }, [vadLayout, KNOWN_VADS]);
 
-  // Simple helper to safely extract a number from InputsRenderer's structure
+  // Helper to safely extract a number from InputsRenderer's structure
   const getFieldNumber = (
     fields: { [fieldIndex: number]: { value: string | number; uom: string } },
     index: number
@@ -128,31 +128,34 @@ export const PresentApp: React.FC = () => {
     }
 
     const res: Record<string, number> = {};
+    let totalAnnualValue = 0;
 
     Object.entries(inputValues).forEach(([vadName, fields]) => {
-      const f = fields as { [fieldIndex: number]: { value: string | number; uom: string } };
-      let total = 0;
+      const f = fields as {
+        [fieldIndex: number]: { value: string | number; uom: string };
+      };
+      let estimatedAccrual = 0;
 
-      // Per‑VAD demo formulas based on your descriptions
+      // Per‑VAD demo formulas (you can swap these later for real API/eval)
       switch (vadName) {
         case "Reduced Electricity Consumption": {
           // 10% reduction on current annual electricity consumption
           const current = getFieldNumber(f, 0);
-          total = current * 0.1;
+          estimatedAccrual = current * 0.1;
           break;
         }
 
         case "Reduced Maintenance Cost": {
           // 15% cost reduction on current maintenance contract
           const maintenance = getFieldNumber(f, 0);
-          total = maintenance * 0.15;
+          estimatedAccrual = maintenance * 0.15;
           break;
         }
 
         case "Increased Ticket Sales": {
           // Assume each additional patron is worth $20 this year
           const patrons = getFieldNumber(f, 0);
-          total = patrons * 20;
+          estimatedAccrual = patrons * 20;
           break;
         }
 
@@ -160,27 +163,27 @@ export const PresentApp: React.FC = () => {
           // Revenue per show * number of at‑risk shows annually
           const revenuePerShow = getFieldNumber(f, 0);
           const atRiskShows = getFieldNumber(f, 1);
-          total = revenuePerShow * atRiskShows;
+          estimatedAccrual = revenuePerShow * atRiskShows;
           break;
         }
 
         case "Increase in Recyclability": {
-          // Assume each HVAC unit recycled avoids "100" impact units
+          // Each HVAC unit recycled avoids "100" impact units
           const hvacUnits = getFieldNumber(f, 0);
-          total = hvacUnits * 100;
+          estimatedAccrual = hvacUnits * 100;
           break;
         }
 
         case "Lower Material Input Emissions": {
-          // Assume each HVAC unit avoids "250" kg of embodied carbon
+          // Each HVAC unit avoids "250" kg of embodied carbon
           const hvacUnits = getFieldNumber(f, 0);
-          total = hvacUnits * 250;
+          estimatedAccrual = hvacUnits * 250;
           break;
         }
 
         default: {
           // Fallback: sum all numeric fields
-          total = Object.values(f).reduce((acc, field) => {
+          estimatedAccrual = Object.values(f).reduce((acc, field) => {
             const raw = field.value;
             const n =
               typeof raw === "number" ? raw : parseFloat(String(raw ?? ""));
@@ -190,8 +193,20 @@ export const PresentApp: React.FC = () => {
         }
       }
 
-      res[vadName] = total;
+      // Store per‑VAD value using the VAD name as key.
+      res[vadName] = estimatedAccrual;
+      totalAnnualValue += estimatedAccrual;
     });
+
+    // Aggregate into the top 4 cards
+    const totalInvestments = totalAnnualValue * 0.3;
+    const netBenefit = totalAnnualValue - totalInvestments;
+    const roi = totalInvestments !== 0 ? (netBenefit / totalInvestments) * 100 : 0;
+
+    res["Total Annual Value"] = totalAnnualValue;
+    res["Total Investments"] = totalInvestments;
+    res["Net Benefit (Year 1)"] = netBenefit;
+    res["ROI"] = roi;
 
     setResults(res);
     setActive("results");
@@ -259,11 +274,12 @@ export const PresentApp: React.FC = () => {
         <InputPage
           vadNames={selectedVADs}
           onCalculate={handleCalculate}
-          // Capture live input changes from the InputsRenderer so we can calculate later
           onInputsChange={setInputValues}
         />
       )}
-      {active === "results" && <ResultsPage results={results} layout={resultsLayout} />}
+      {active === "results" && (
+        <ResultsPage results={results} layout={resultsLayout} />
+      )}
     </div>
   );
 };
