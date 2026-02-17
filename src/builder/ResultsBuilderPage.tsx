@@ -6,11 +6,18 @@ import type { CraftLayout } from "../types";
 type Props = {
   data: CraftLayout;
   onChange: (data: CraftLayout) => void;
+  selectedVADs?: string[];
   zoom?: number;
   viewportWidth?: string;
 };
 
-export const ResultsBuilderPage: React.FC<Props> = ({ data, onChange, zoom = 100, viewportWidth = "100%" }) => {
+export const ResultsBuilderPage: React.FC<Props> = ({
+  data,
+  onChange,
+  selectedVADs = [],
+  zoom = 100,
+  viewportWidth = "100%",
+}) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
       <div
@@ -28,6 +35,7 @@ export const ResultsBuilderPage: React.FC<Props> = ({ data, onChange, zoom = 100
         mode="results"
         initialData={data ?? undefined}
         onChange={onChange}
+        selectedVADs={selectedVADs}
         zoom={zoom}
         viewportWidth={viewportWidth}
       />

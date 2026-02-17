@@ -1,6 +1,7 @@
 // src/present/InputPage.tsx
 import React from "react";
-import { InputsRenderer, type VADInputValue } from "./InputsRenderer";
+import { InputsRenderer } from "./InputsRenderer";
+import type { VADInputValue } from "../evalContext";
 
 type Props = {
   vadNames: string[]; // Array of VAD names from build layout

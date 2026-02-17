@@ -1,12 +1,12 @@
 // src/present/PresentApp.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { loadBuildConfig } from "../api";
-import type { ProjectBuildConfig, ThemeConfig, VADId } from "../types";
-import { VAD_INPUT_CONFIGS } from "../vadInputs";
+import type { ProjectBuildConfig, ThemeConfig } from "../types";
 import { HomePage } from "./HomePage";
 import { InputPage } from "./InputPage";
 import { ResultsPage } from "./ResultsPage";
-import type { VADInputValue } from "./InputsRenderer";
+import type { VADInputValue } from "../evalContext";
+import { detectSelectedVADsFromLayout } from "../vadSelection";
 
 type PresentTab = "home" | "vads" | "results";
 
@@ -14,7 +14,7 @@ type PresentTab = "home" | "vads" | "results";
 const applyTheme = (theme: ThemeConfig | null) => {
   if (!theme) return;
   const body = document.body;
-
+  
   if (theme.mode === "light") {
     body.removeAttribute("data-theme");
     body.style.backgroundColor = "#f5f5f5";
@@ -24,17 +24,17 @@ const applyTheme = (theme: ThemeConfig | null) => {
     body.style.backgroundColor = "#1a1a1a";
     body.style.color = "#ffffff";
   }
-
+  
   // Remove old style if it exists
   const existingStyle = document.getElementById("theme-style");
   if (existingStyle) {
     existingStyle.remove();
   }
-
+  
   // Create and inject CSS rule for canvas frames
   const styleEl = document.createElement("style");
   styleEl.id = "theme-style";
-
+  
   if (theme.mode === "light") {
     styleEl.textContent = `
       .canvas-frame {
@@ -62,7 +62,7 @@ const applyTheme = (theme: ThemeConfig | null) => {
       }
     `;
   }
-
+  
   document.head.appendChild(styleEl);
 };
 
@@ -91,26 +91,9 @@ export const PresentApp: React.FC = () => {
   const vadLayout = config?.vadLayout ?? null;
   const resultsLayout = config?.resultsLayout ?? null;
 
-  const KNOWN_VADS = Object.keys(VAD_INPUT_CONFIGS) as VADId[];
+  const selectedVADs = useMemo(() => detectSelectedVADsFromLayout(vadLayout), [vadLayout]);
 
-  const selectedVADs: VADId[] = useMemo(() => {
-    if (!vadLayout || typeof vadLayout !== "string") {
-      return [];
-    }
-
-    // Simple, robust detection: look for known VAD titles inside the serialized layout string.
-    const vadNames: VADId[] = [];
-
-    KNOWN_VADS.forEach((name) => {
-      if (vadLayout.includes(`"title":"${name}"`)) {
-        vadNames.push(name);
-      }
-    });
-
-    return vadNames;
-  }, [vadLayout, KNOWN_VADS]);
-
-  // Helper to safely extract a number from InputsRenderer's structure
+  // Simple helper to safely extract a number from InputsRenderer's structure
   const getFieldNumber = (
     fields: { [fieldIndex: number]: { value: string | number; uom: string } },
     index: number
@@ -128,62 +111,70 @@ export const PresentApp: React.FC = () => {
     }
 
     const res: Record<string, number> = {};
-    let totalAnnualValue = 0;
 
     Object.entries(inputValues).forEach(([vadName, fields]) => {
-      const f = fields as {
-        [fieldIndex: number]: { value: string | number; uom: string };
-      };
-      let estimatedAccrual = 0;
+      const f = fields as { [fieldIndex: number]: { value: string | number; uom: string } };
+      let total = 0;
 
-      // Per‑VAD demo formulas (you can swap these later for real API/eval)
+      // Per‑VAD demo formulas based on your descriptions
       switch (vadName) {
         case "Reduced Electricity Consumption": {
-          // 10% reduction on current annual electricity consumption
-          const current = getFieldNumber(f, 0);
-          estimatedAccrual = current * 0.1;
+          // current_annual_hvac_electricity_consumption * uahu_energy_reduction_percentage * electricity_cost_per_kwh
+          const consumptionKwh = getFieldNumber(f, 0);
+          const reductionPct = getFieldNumber(f, 1);
+          const costPerKwh = getFieldNumber(f, 2);
+          total = consumptionKwh * (reductionPct / 100) * costPerKwh;
           break;
         }
 
         case "Reduced Maintenance Cost": {
-          // 15% cost reduction on current maintenance contract
-          const maintenance = getFieldNumber(f, 0);
-          estimatedAccrual = maintenance * 0.15;
+          // cost_of_current_maintenance_contract_per_year - cost_of_uahu_predictive_maintenance_plan_per_year
+          const current = getFieldNumber(f, 0);
+          const uahuPlan = getFieldNumber(f, 1);
+          total = Math.max(0, current - uahuPlan);
           break;
         }
 
         case "Increased Ticket Sales": {
-          // Assume each additional patron is worth $20 this year
+          // no_of_annual_patrons * projected_patronage_increase * average_ticket_profit
           const patrons = getFieldNumber(f, 0);
-          estimatedAccrual = patrons * 20;
+          const increasePct = getFieldNumber(f, 1);
+          const avgProfit = getFieldNumber(f, 2);
+          total = patrons * (increasePct / 100) * avgProfit;
           break;
         }
 
         case "Avoided Revenue Loss": {
-          // Revenue per show * number of at‑risk shows annually
+          // revenue_per_show * no_of_at_risk_shows_annually * reduced_probability_of_failure
           const revenuePerShow = getFieldNumber(f, 0);
           const atRiskShows = getFieldNumber(f, 1);
-          estimatedAccrual = revenuePerShow * atRiskShows;
+          const reducedFailurePct = getFieldNumber(f, 2);
+          total = revenuePerShow * atRiskShows * (reducedFailurePct / 100);
           break;
         }
 
-        case "Increase in Recyclability": {
-          // Each HVAC unit recycled avoids "100" impact units
+        case "Increased Recyclability": {
+          // Simple demo: no_of_hvac_units_required * cost_saved_by_recyclability
           const hvacUnits = getFieldNumber(f, 0);
-          estimatedAccrual = hvacUnits * 100;
+          const costSaved = getFieldNumber(f, 3);
+          total = hvacUnits * costSaved;
           break;
         }
 
-        case "Lower Material Input Emissions": {
-          // Each HVAC unit avoids "250" kg of embodied carbon
+        case "Embodied Carbon Reduction": {
+          // no_of_hvac_units_required * hvac_average_emissions * uahu_emission_reduction_rate * carbon_credit_tax_cost
           const hvacUnits = getFieldNumber(f, 0);
-          estimatedAccrual = hvacUnits * 250;
+          const avgEmissions = getFieldNumber(f, 1);
+          const reductionPct = getFieldNumber(f, 2);
+          const carbonCost = getFieldNumber(f, 3);
+          const avoided = hvacUnits * avgEmissions * (reductionPct / 100);
+          total = avoided * carbonCost;
           break;
         }
 
         default: {
           // Fallback: sum all numeric fields
-          estimatedAccrual = Object.values(f).reduce((acc, field) => {
+          total = Object.values(f).reduce((acc, field) => {
             const raw = field.value;
             const n =
               typeof raw === "number" ? raw : parseFloat(String(raw ?? ""));
@@ -193,22 +184,22 @@ export const PresentApp: React.FC = () => {
         }
       }
 
-      // Store per‑VAD value using the VAD name as key.
-      res[vadName] = estimatedAccrual;
-      totalAnnualValue += estimatedAccrual;
+      res[vadName] = total;
     });
 
-    // Aggregate into the top 4 cards
-    const totalInvestments = totalAnnualValue * 0.3;
+    // Aggregate headline metrics (these keys match the default ResultCard labels)
+    const totalAnnualValue = Object.values(res).reduce((acc, n) => acc + (Number.isFinite(n) ? n : 0), 0);
+    const totalInvestments = totalAnnualValue * 0.3; // demo assumption
     const netBenefit = totalAnnualValue - totalInvestments;
-    const roi = totalInvestments !== 0 ? (netBenefit / totalInvestments) * 100 : 0;
+    const roi = totalInvestments === 0 ? 0 : netBenefit / totalInvestments;
 
-    res["Total Annual Value"] = totalAnnualValue;
-    res["Total Investments"] = totalInvestments;
-    res["Net Benefit (Year 1)"] = netBenefit;
-    res["ROI"] = roi;
-
-    setResults(res);
+    setResults({
+      ...res,
+      "Total Annual Value": totalAnnualValue,
+      "Total Investments": totalInvestments,
+      "Net Benefit (Year 1)": netBenefit,
+      ROI: roi,
+    });
     setActive("results");
   };
 
@@ -274,11 +265,17 @@ export const PresentApp: React.FC = () => {
         <InputPage
           vadNames={selectedVADs}
           onCalculate={handleCalculate}
+          // Capture live input changes from the InputsRenderer so we can calculate later
           onInputsChange={setInputValues}
         />
       )}
       {active === "results" && (
-        <ResultsPage results={results} layout={resultsLayout} />
+        <ResultsPage
+          results={results}
+          layout={resultsLayout}
+          selectedVADs={selectedVADs}
+          inputs={inputValues}
+        />
       )}
     </div>
   );

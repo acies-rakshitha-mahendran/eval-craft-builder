@@ -2,6 +2,8 @@
 import React from "react";
 import { useNode } from "@craftjs/core";
 import { ResultsContext } from "../../resultsContext";
+import { EvalContext } from "../../evalContext";
+import { VAD_INPUT_CONFIGS } from "../../vadInputs";
 
 type BaseProps = {
   children?: React.ReactNode;
@@ -472,4 +474,110 @@ export const SliderCard: React.FC<{
 (SliderCard as any).craft = {
   displayName: "SliderCard",
   props: { label: "Adjust Value", min: 0, max: 100, value: 50, unit: "" },
+};
+
+// Dynamic list of VAD result cards (driven by VAD selection + inputs + computed results)
+export const VADResultsList: React.FC<{
+  columns?: number;
+  gap?: number;
+}> = ({ columns = 2, gap = 12 }) => {
+  const { connectors } = useNode();
+  return (
+    <VADResultsCards
+      columns={columns}
+      gap={gap}
+      connectRef={(ref) => {
+        if (ref) connectors.connect(ref);
+      }}
+    />
+  );
+};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(VADResultsList as any).craft = {
+  displayName: "VADResultsList",
+  props: { columns: 2, gap: 12 },
+};
+
+// Non-craft (pure React) version for runtime fallbacks
+export const VADResultsCards: React.FC<{
+  columns?: number;
+  gap?: number;
+  connectRef?: (el: HTMLDivElement | null) => void;
+}> = ({ columns = 2, gap = 12, connectRef }) => {
+  const results = React.useContext(ResultsContext);
+  const { selectedVADs, inputs } = React.useContext(EvalContext);
+
+  const vadsToRender = selectedVADs ?? [];
+
+  return (
+    <div
+      ref={connectRef}
+      style={{
+        display: "grid",
+        gridTemplateColumns: `repeat(${Math.max(1, columns)}, minmax(0, 1fr))`,
+        gap,
+        marginTop: 12,
+      }}
+    >
+      {vadsToRender.length === 0 ? (
+        <div className="glass-card" style={{ gridColumn: "1 / -1", opacity: 0.85 }}>
+          No VADs selected yet. Go to the Inputs screen and drag VADs in, then Save.
+        </div>
+      ) : (
+        vadsToRender.map((vadName) => {
+          const cfg = VAD_INPUT_CONFIGS[vadName];
+          const fieldInputs = inputs?.[vadName] ?? {};
+          const computed =
+            results && Object.prototype.hasOwnProperty.call(results, vadName) ? results[vadName] : null;
+
+          return (
+            <div
+              key={vadName}
+              className="glass-card"
+              style={{
+                padding: "14px 14px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+                border: "1px solid rgba(85,136,59,0.25)",
+              }}
+            >
+              <div style={{ fontSize: 14, fontWeight: 650, color: "#55883B" }}>{vadName}</div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {(cfg?.fields ?? []).map((field, idx) => {
+                  const entry = fieldInputs[idx];
+                  const value =
+                    entry?.value === undefined || entry?.value === null || entry?.value === ""
+                      ? "—"
+                      : String(entry.value);
+                  const uom = entry?.uom ?? field.defaultUOM ?? "";
+
+                  return (
+                    <div
+                      key={`${vadName}-${idx}`}
+                      style={{ display: "flex", justifyContent: "space-between", gap: 12 }}
+                    >
+                      <div style={{ fontSize: 12, opacity: 0.85 }}>{field.label}</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.95, whiteSpace: "nowrap" }}>
+                        {value}
+                        {uom ? ` ${uom}` : ""}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ marginTop: 4, paddingTop: 10, borderTop: "1px solid rgba(148,163,184,0.25)" }}>
+                <div style={{ fontSize: 12, opacity: 0.8 }}>Calculated Value</div>
+                <div style={{ fontSize: 18, fontWeight: 700 }}>
+                  {computed === null ? "—" : computed.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                </div>
+              </div>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
 };

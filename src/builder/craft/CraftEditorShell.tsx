@@ -13,8 +13,11 @@ import {
   VADBlock,
   ResultCard,
   SliderCard,
+  VADResultsList,
 } from "./craftNodes";
 import { craftResolver } from "./craftResolver";
+import { EvalContext, type VADInputValue } from "../../evalContext";
+import { ResultsContext } from "../../resultsContext";
 
 type CraftEditorShellProps = {
   initialData?: string | null;
@@ -22,6 +25,9 @@ type CraftEditorShellProps = {
   mode: "home" | "vads" | "results";
   zoom?: number;
   viewportWidth?: string;
+  // Optional preview context (lets Results screen reflect selected VADs dynamically in Build)
+  selectedVADs?: string[];
+  previewInputs?: VADInputValue | null;
 };
 
 const VADS_LIST = [
@@ -29,19 +35,14 @@ const VADS_LIST = [
   "Reduced Maintenance Cost",
   "Increased Ticket Sales",
   "Avoided Revenue Loss",
-  "Increase in Recyclability",
-  "Lower Material Input Emissions",
+  "Increased Recyclability",
+  "Cost Consumption",
+  "Embodied Carbon Reduction",
 ];
 
 // Draggable component inside editor context
-const DraggableItem: React.FC<{
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  component: React.ComponentType<any>;
-  label: string;
-  icon: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  props?: any;
-}> = ({ component, label, icon, props = {} }) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const DraggableItem: React.FC<{ component: React.ComponentType<any>; label: string; icon: string; props?: any }> = ({ component, label, icon, props = {} }) => {
   const { connectors } = useEditor();
 
   return (
@@ -62,22 +63,11 @@ const DraggableItem: React.FC<{
   );
 };
 
-const RenderPalette: React.FC<{ mode: "home" | "vads" | "results" }> = ({
-  mode,
-}) => {
+const RenderPalette: React.FC<{ mode: "home" | "vads" | "results" }> = ({ mode }) => {
   if (mode === "home") {
     return (
       <>
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            marginBottom: "0.5rem",
-            opacity: 0.8,
-          }}
-        >
-          Components
-        </div>
+        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: "0.5rem", opacity: 0.8 }}>Components</div>
         <DraggableItem component={LogoBlock} label="Logo" icon="●" />
         <DraggableItem component={TitleBlock} label="Title" icon="H1" />
         <DraggableItem component={SubtitleBlock} label="Subtitle" icon="⋯" />
@@ -91,16 +81,7 @@ const RenderPalette: React.FC<{ mode: "home" | "vads" | "results" }> = ({
   } else if (mode === "vads") {
     return (
       <>
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            marginBottom: "0.5rem",
-            opacity: 0.8,
-          }}
-        >
-          VADs
-        </div>
+        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: "0.5rem", opacity: 0.8 }}>VADs</div>
         {VADS_LIST.map((vad) => (
           <DraggableItem
             key={vad}
@@ -110,17 +91,7 @@ const RenderPalette: React.FC<{ mode: "home" | "vads" | "results" }> = ({
             props={{ title: vad }}
           />
         ))}
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-            opacity: 0.8,
-          }}
-        >
-          Layout
-        </div>
+        <div style={{ fontSize: 12, fontWeight: 600, marginTop: "1rem", marginBottom: "0.5rem", opacity: 0.8 }}>Layout</div>
         <DraggableItem component={TitleBlock} label="Title" icon="H1" />
         <DraggableItem component={SubtitleBlock} label="Subtitle" icon="⋯" />
         <DraggableItem component={GridBlock} label="Grid" icon="⊞" />
@@ -131,18 +102,10 @@ const RenderPalette: React.FC<{ mode: "home" | "vads" | "results" }> = ({
   } else {
     return (
       <>
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            marginBottom: "0.5rem",
-            opacity: 0.8,
-          }}
-        >
-          Components
-        </div>
+        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: "0.5rem", opacity: 0.8 }}>Components</div>
         <DraggableItem component={ResultCard} label="Result Card" icon="∑" />
         <DraggableItem component={SliderCard} label="Slider" icon="🎚" />
+        <DraggableItem component={VADResultsList} label="Selected VAD Cards" icon="⧉" />
         <DraggableItem component={TitleBlock} label="Title" icon="H1" />
         <DraggableItem component={SubtitleBlock} label="Summary" icon="📊" />
         <DraggableItem component={GridBlock} label="Grid" icon="⊞" />
@@ -157,72 +120,24 @@ const RenderVadPanel: React.FC = () => {
   return (
     <div>
       <div style={{ marginBottom: "1rem" }}>
-        <label
-          style={{
-            display: "block",
-            fontSize: 12,
-            marginBottom: "0.35rem",
-            opacity: 0.8,
-          }}
-        >
-          VAD Name
-        </label>
+        <label style={{ display: "block", fontSize: 12, marginBottom: "0.35rem", opacity: 0.8 }}>VAD Name</label>
         <input type="text" placeholder="Enter VAD name" />
       </div>
       <div style={{ marginBottom: "1rem" }}>
-        <label
-          style={{
-            display: "block",
-            fontSize: 12,
-            marginBottom: "0.35rem",
-            opacity: 0.8,
-          }}
-        >
-          Category
-        </label>
+        <label style={{ display: "block", fontSize: 12, marginBottom: "0.35rem", opacity: 0.8 }}>Category</label>
         <input type="text" placeholder="Enter category" />
       </div>
       <div style={{ marginBottom: "1rem" }}>
-        <label
-          style={{
-            display: "block",
-            fontSize: 12,
-            marginBottom: "0.35rem",
-            opacity: 0.8,
-          }}
-        >
-          Dimension
-        </label>
+        <label style={{ display: "block", fontSize: 12, marginBottom: "0.35rem", opacity: 0.8 }}>Dimension</label>
         <input type="text" placeholder="Enter dimension" />
       </div>
       <div style={{ marginBottom: "1rem" }}>
-        <label
-          style={{
-            display: "block",
-            fontSize: 12,
-            marginBottom: "0.35rem",
-            opacity: 0.8,
-          }}
-        >
-          Variables
-        </label>
+        <label style={{ display: "block", fontSize: 12, marginBottom: "0.35rem", opacity: 0.8 }}>Variables</label>
         <input type="text" placeholder="Enter variables" />
       </div>
       <div>
-        <label
-          style={{
-            display: "block",
-            fontSize: 12,
-            marginBottom: "0.35rem",
-            opacity: 0.8,
-          }}
-        >
-          Expression
-        </label>
-        <textarea
-          placeholder="Enter expression"
-          style={{ minHeight: "80px", fontFamily: "monospace" }}
-        />
+        <label style={{ display: "block", fontSize: 12, marginBottom: "0.35rem", opacity: 0.8 }}>Expression</label>
+        <textarea placeholder="Enter expression" style={{ minHeight: "80px", fontFamily: "monospace" }} />
       </div>
     </div>
   );
@@ -261,29 +176,14 @@ const PropertyEditorWrapper: React.FC<{ nodeId: string }> = ({ nodeId }) => {
 
   return (
     <div style={{ fontSize: 11, padding: "0.5rem" }}>
-      <div
-        style={{
-          marginBottom: "1rem",
-          paddingBottom: "0.5rem",
-          borderBottom: "1px solid rgba(85, 136, 59, 0.2)",
-        }}
-      >
+      <div style={{ marginBottom: "1rem", paddingBottom: "0.5rem", borderBottom: "1px solid rgba(85, 136, 59, 0.2)" }}>
         <span style={{ opacity: 0.8, fontWeight: 600 }}>
           Component Properties
         </span>
       </div>
 
       <div style={{ marginBottom: "0.75rem" }}>
-        <label
-          style={{
-            display: "block",
-            fontSize: 11,
-            marginBottom: "0.25rem",
-            opacity: 0.7,
-          }}
-        >
-          Text
-        </label>
+        <label style={{ display: "block", fontSize: 11, marginBottom: "0.25rem", opacity: 0.7 }}>Text</label>
         <input
           type="text"
           placeholder="Enter text"
@@ -292,37 +192,17 @@ const PropertyEditorWrapper: React.FC<{ nodeId: string }> = ({ nodeId }) => {
       </div>
 
       <div style={{ marginBottom: "0.75rem" }}>
-        <label
-          style={{
-            display: "block",
-            fontSize: 11,
-            marginBottom: "0.25rem",
-            opacity: 0.7,
-          }}
-        >
-          Font Size (px)
-        </label>
+        <label style={{ display: "block", fontSize: 11, marginBottom: "0.25rem", opacity: 0.7 }}>Font Size (px)</label>
         <input
           type="number"
           placeholder="16"
           defaultValue="16"
-          onChange={(e) =>
-            handlePropChange("fontSize", parseInt(e.target.value) || 16)
-          }
+          onChange={(e) => handlePropChange("fontSize", parseInt(e.target.value) || 16)}
         />
       </div>
 
       <div style={{ marginBottom: "0.75rem" }}>
-        <label
-          style={{
-            display: "block",
-            fontSize: 11,
-            marginBottom: "0.25rem",
-            opacity: 0.7,
-          }}
-        >
-          Text Color
-        </label>
+        <label style={{ display: "block", fontSize: 11, marginBottom: "0.25rem", opacity: 0.7 }}>Text Color</label>
         <input
           type="color"
           defaultValue="#000000"
@@ -332,16 +212,7 @@ const PropertyEditorWrapper: React.FC<{ nodeId: string }> = ({ nodeId }) => {
       </div>
 
       <div style={{ marginBottom: "0.75rem" }}>
-        <label
-          style={{
-            display: "block",
-            fontSize: 11,
-            marginBottom: "0.25rem",
-            opacity: 0.7,
-          }}
-        >
-          Background Color
-        </label>
+        <label style={{ display: "block", fontSize: 11, marginBottom: "0.25rem", opacity: 0.7 }}>Background Color</label>
         <input
           type="color"
           defaultValue="#ffffff"
@@ -351,44 +222,22 @@ const PropertyEditorWrapper: React.FC<{ nodeId: string }> = ({ nodeId }) => {
       </div>
 
       <div style={{ marginBottom: "0.75rem" }}>
-        <label
-          style={{
-            display: "block",
-            fontSize: 11,
-            marginBottom: "0.25rem",
-            opacity: 0.7,
-          }}
-        >
-          Border Radius (px)
-        </label>
+        <label style={{ display: "block", fontSize: 11, marginBottom: "0.25rem", opacity: 0.7 }}>Border Radius (px)</label>
         <input
           type="number"
           placeholder="0"
           defaultValue="0"
-          onChange={(e) =>
-            handlePropChange("borderRadius", parseInt(e.target.value) || 0)
-          }
+          onChange={(e) => handlePropChange("borderRadius", parseInt(e.target.value) || 0)}
         />
       </div>
 
       <div style={{ marginBottom: "0.75rem" }}>
-        <label
-          style={{
-            display: "block",
-            fontSize: 11,
-            marginBottom: "0.25rem",
-            opacity: 0.7,
-          }}
-        >
-          Min Height (px)
-        </label>
+        <label style={{ display: "block", fontSize: 11, marginBottom: "0.25rem", opacity: 0.7 }}>Min Height (px)</label>
         <input
           type="number"
           placeholder="100"
           defaultValue="100"
-          onChange={(e) =>
-            handlePropChange("minHeight", parseInt(e.target.value) || 100)
-          }
+          onChange={(e) => handlePropChange("minHeight", parseInt(e.target.value) || 100)}
         />
       </div>
     </div>
@@ -401,6 +250,8 @@ export const CraftEditorShell: React.FC<CraftEditorShellProps> = ({
   mode,
   zoom = 100,
   viewportWidth = "100%",
+  selectedVADs = [],
+  previewInputs = null,
 }) => {
   return (
     <div className="editor-shell">
@@ -426,10 +277,7 @@ export const CraftEditorShell: React.FC<CraftEditorShellProps> = ({
           >
             Drag from here into the central canvas.
           </div>
-          <div
-            className="palette-list"
-            style={{ maxHeight: "calc(100vh - 300px)", overflowY: "auto" }}
-          >
+          <div className="palette-list" style={{ maxHeight: "calc(100vh - 300px)", overflowY: "auto" }}>
             <RenderPalette mode={mode} />
           </div>
         </div>
@@ -444,40 +292,30 @@ export const CraftEditorShell: React.FC<CraftEditorShellProps> = ({
                 width: viewportWidth,
               }}
             >
-              <Frame data={initialData ?? undefined}>
-                {mode === "results" ? (
-                  <Element is={Container} canvas padding={24} align="left">
-                    <TitleBlock text="Value Estimation" />
-                    <div style={{ marginBottom: 16 }}>
-                      <GridBlock columns={4}>
-                        <ResultCard
-                          label="Total Annual Value"
-                          value="Enter value"
-                        />
-                        <ResultCard
-                          label="Total Investments"
-                          value="Enter value"
-                        />
-                        <ResultCard
-                          label="Net Benefit (Year 1)"
-                          value="Enter value"
-                        />
-                        <ResultCard label="ROI" value="Enter value" />
-                      </GridBlock>
-                    </div>
-                    <GridBlock columns={2}>
-                      <Container padding={16}>
-                        <SubtitleBlock text="Enter details here" />
-                      </Container>
-                      <Container padding={16}>
-                        <SubtitleBlock text="Enter details here" />
-                      </Container>
-                    </GridBlock>
-                  </Element>
-                ) : (
-                  <Element is={Container} canvas padding={24} align="left" />
-                )}
-              </Frame>
+              <ResultsContext.Provider value={null}>
+                <EvalContext.Provider value={{ selectedVADs, inputs: previewInputs }}>
+                  <Frame data={initialData ?? undefined}>
+                    {mode === "results" ? (
+                      <Element is={Container} canvas padding={24} align="left">
+                        <TitleBlock text="Value Estimation" />
+                        <div style={{ marginBottom: 16 }}>
+                          <GridBlock columns={4}>
+                            <ResultCard label="Total Annual Value" value="Enter value" />
+                            <ResultCard label="Total Investments" value="Enter value" />
+                            <ResultCard label="Net Benefit (Year 1)" value="Enter value" />
+                            <ResultCard label="ROI" value="Enter value" />
+                          </GridBlock>
+                        </div>
+
+                        {/* Dynamic: cards for the VADs selected on the Inputs screen */}
+                        <VADResultsList columns={2} />
+                      </Element>
+                    ) : (
+                      <Element is={Container} canvas padding={24} align="left" />
+                    )}
+                  </Frame>
+                </EvalContext.Provider>
+              </ResultsContext.Provider>
             </div>
           </div>
         </div>

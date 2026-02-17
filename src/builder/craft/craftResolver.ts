@@ -11,6 +11,7 @@ import {
   VADBlock,
   ResultCard,
   SliderCard,
+  VADResultsList,
 } from "./craftNodes";
 
 export const craftResolver = {
@@ -25,4 +26,5 @@ export const craftResolver = {
   VADBlock,
   ResultCard,
   SliderCard,
+  VADResultsList,
 };

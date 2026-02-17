@@ -6,6 +6,7 @@ import { defaultTheme, lightTheme, darkTheme } from "../theme";
 import { HomeBuilderPage } from "./HomeBuilderPage";
 import { VadBuilderPage } from "./VadBuilderPage";
 import { ResultsBuilderPage } from "./ResultsBuilderPage";
+import { detectSelectedVADsFromLayout } from "../vadSelection";
 
 const DEMO_PROJECT_ID = "demo-project";
 
@@ -86,6 +87,8 @@ export const BuildApp: React.FC = () => {
     () => isPageBuilt(homeData) && isPageBuilt(vadData) && isPageBuilt(resultsData),
     [homeData, vadData, resultsData]
   );
+
+  const selectedVADs = useMemo(() => detectSelectedVADsFromLayout(vadData), [vadData]);
 
   const persistConfig = async () => {
     const cfg: ProjectBuildConfig = {
@@ -299,6 +302,7 @@ export const BuildApp: React.FC = () => {
         <ResultsBuilderPage
           data={resultsData}
           onChange={setResultsData}
+          selectedVADs={selectedVADs}
           zoom={zoom}
           viewportWidth={getViewportWidth()}
         />

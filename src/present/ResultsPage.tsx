@@ -4,13 +4,17 @@ import { Editor, Frame } from "@craftjs/core";
 import { craftResolver } from "../builder/craft/craftResolver";
 import type { CraftLayout, EvalResults } from "../types";
 import { ResultsContext } from "../resultsContext";
+import { EvalContext, type VADInputValue } from "../evalContext";
+import { VADResultsCards } from "../builder/craft/craftNodes";
 
 type Props = {
   results: EvalResults | null;
   layout: CraftLayout;
+  selectedVADs: string[];
+  inputs: VADInputValue;
 };
 
-export const ResultsPage: React.FC<Props> = ({ results, layout }) => {
+export const ResultsPage: React.FC<Props> = ({ results, layout, selectedVADs, inputs }) => {
   if (!layout) {
     return (
       <div style={{ padding: 24, opacity: 0.8, fontSize: 13 }}>
@@ -19,8 +23,7 @@ export const ResultsPage: React.FC<Props> = ({ results, layout }) => {
     );
   }
 
-  const hasResults = !!results && Object.keys(results).length > 0;
-  const keys = hasResults ? Object.keys(results as EvalResults) : [];
+  const layoutHasDynamicVADCards = typeof layout === "string" && layout.includes("VADResultsList");
 
   return (
     <div
@@ -31,56 +34,23 @@ export const ResultsPage: React.FC<Props> = ({ results, layout }) => {
         overflowY: "auto",
       }}
     >
-      {/* Results layout built in the Results builder, with live numeric values injected via context */}
+      {/* Results layout built in the Results builder, with live selection + inputs + numeric results injected via context */}
       <div className="glass-card" style={{ padding: 0 }}>
         <ResultsContext.Provider value={results}>
-          <Editor enabled={false} resolver={craftResolver}>
-            <Frame data={layout} />
-          </Editor>
+          <EvalContext.Provider value={{ selectedVADs, inputs }}>
+            <Editor enabled={false} resolver={craftResolver}>
+              <Frame data={layout} />
+            </Editor>
+
+            {/* Seamless fallback for older published layouts (ensures selected VAD cards still show) */}
+            {!layoutHasDynamicVADCards && (
+              <div style={{ padding: "0 0.75rem 0.75rem 0.75rem" }}>
+                <VADResultsCards columns={2} />
+              </div>
+            )}
+          </EvalContext.Provider>
         </ResultsContext.Provider>
       </div>
-
-      {/* Numeric summary + debug view */}
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        {hasResults ? (
-          keys.slice(0, 4).map((key) => (
-            <div key={key} className="glass-card" style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, color: "#9ca3af" }}>{key}</div>
-              <div style={{ fontSize: 24, fontWeight: 600 }}>
-                {results && results[key].toFixed(2)}
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={200}
-                defaultValue={results ? results[key] : 0}
-                style={{ width: "100%" }}
-              />
-            </div>
-          ))
-        ) : (
-          <div style={{ padding: 16, opacity: 0.8, fontSize: 13 }}>
-            Run a calculation first to see numeric outputs alongside the designed layout.
-          </div>
-        )}
-      </div>
-
-      {hasResults && (
-        <div style={{ marginTop: 4 }} className="glass-card">
-          <div style={{ fontSize: 13, marginBottom: 8, opacity: 0.8 }}>
-            Detailed result payload
-          </div>
-          <pre
-            style={{
-              fontSize: 11,
-              color: "#9ca3af",
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            {JSON.stringify(results, null, 2)}
-          </pre>
-        </div>
-      )}
     </div>
   );
 };
