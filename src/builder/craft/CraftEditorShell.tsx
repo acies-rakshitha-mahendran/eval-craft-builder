@@ -1,4 +1,3 @@
-// src/builder/craft/CraftEditorShell.tsx
 import React from "react";
 import { Editor, Frame, Element, useEditor } from "@craftjs/core";
 import {
@@ -25,22 +24,19 @@ type CraftEditorShellProps = {
   mode: "home" | "vads" | "results";
   zoom?: number;
   viewportWidth?: string;
-  // Optional preview context (lets Results screen reflect selected VADs dynamically in Build)
   selectedVADs?: string[];
   previewInputs?: VADInputValue | null;
 };
 
 const VADS_LIST = [
   "Reduced Electricity Consumption",
-  "Reduced Maintenance Cost",
+  "Reduced Maintenance Costs",
   "Increased Ticket Sales",
   "Avoided Revenue Loss",
   "Increased Recyclability",
-  "Cost Consumption",
   "Embodied Carbon Reduction",
 ];
 
-// Draggable component inside editor context
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const DraggableItem: React.FC<{ component: React.ComponentType<any>; label: string; icon: string; props?: any }> = ({ component, label, icon, props = {} }) => {
   const { connectors } = useEditor();
@@ -49,8 +45,6 @@ const DraggableItem: React.FC<{ component: React.ComponentType<any>; label: stri
     <div
       ref={(ref) => {
         if (ref) {
-          // Create a new node in the editor when dragged into the canvas
-          // We pass initial props directly into the component so it appears immediately
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           connectors?.create(ref as any, React.createElement(component as any, props));
         }
@@ -143,7 +137,6 @@ const RenderVadPanel: React.FC = () => {
   );
 };
 
-// Inspector panel for editing selected component properties
 const InspectorPanel: React.FC = () => {
   const { selected } = useEditor((state) => ({
     selected: state.events.selected,
@@ -160,7 +153,6 @@ const InspectorPanel: React.FC = () => {
   return <PropertyEditorWrapper nodeId={Array.from(selected)[0]} />;
 };
 
-// Wrapper that has access to Editor context
 const PropertyEditorWrapper: React.FC<{ nodeId: string }> = ({ nodeId }) => {
   const { actions } = useEditor();
 
@@ -306,8 +298,6 @@ export const CraftEditorShell: React.FC<CraftEditorShellProps> = ({
                             <ResultCard label="ROI" value="Enter value" />
                           </GridBlock>
                         </div>
-
-                        {/* Dynamic: cards for the VADs selected on the Inputs screen */}
                         <VADResultsList columns={2} />
                       </Element>
                     ) : (

@@ -1,4 +1,3 @@
-// src/present/PresentApp.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { loadBuildConfig } from "../api";
 import type { ProjectBuildConfig, ThemeConfig } from "../types";
@@ -10,7 +9,6 @@ import { detectSelectedVADsFromLayout } from "../vadSelection";
 
 type PresentTab = "home" | "vads" | "results";
 
-// Apply theme to document
 const applyTheme = (theme: ThemeConfig | null) => {
   if (!theme) return;
   const body = document.body;
@@ -24,14 +22,12 @@ const applyTheme = (theme: ThemeConfig | null) => {
     body.style.backgroundColor = "#1a1a1a";
     body.style.color = "#ffffff";
   }
-  
-  // Remove old style if it exists
+
   const existingStyle = document.getElementById("theme-style");
   if (existingStyle) {
     existingStyle.remove();
   }
   
-  // Create and inject CSS rule for canvas frames
   const styleEl = document.createElement("style");
   styleEl.id = "theme-style";
   
@@ -71,7 +67,6 @@ export const PresentApp: React.FC = () => {
   const [config, setConfig] = useState<ProjectBuildConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<Record<string, number> | null>(null);
-  // Raw inputs coming from the InputsRenderer (keyed by VAD name and field index)
   const [inputValues, setInputValues] = useState<VADInputValue>({});
 
   useEffect(() => {
@@ -93,7 +88,6 @@ export const PresentApp: React.FC = () => {
 
   const selectedVADs = useMemo(() => detectSelectedVADsFromLayout(vadLayout), [vadLayout]);
 
-  // Simple helper to safely extract a number from InputsRenderer's structure
   const getFieldNumber = (
     fields: { [fieldIndex: number]: { value: string | number; uom: string } },
     index: number
@@ -116,64 +110,61 @@ export const PresentApp: React.FC = () => {
       const f = fields as { [fieldIndex: number]: { value: string | number; uom: string } };
       let total = 0;
 
-      // Per‑VAD demo formulas based on your descriptions
       switch (vadName) {
         case "Reduced Electricity Consumption": {
-          // current_annual_hvac_electricity_consumption * uahu_energy_reduction_percentage * electricity_cost_per_kwh
           const consumptionKwh = getFieldNumber(f, 0);
-          const reductionPct = getFieldNumber(f, 1);
-          const costPerKwh = getFieldNumber(f, 2);
+          const reductionPct = 50;
+          const costPerKwh = 0.15;
           total = consumptionKwh * (reductionPct / 100) * costPerKwh;
           break;
         }
 
-        case "Reduced Maintenance Cost": {
-          // cost_of_current_maintenance_contract_per_year - cost_of_uahu_predictive_maintenance_plan_per_year
+        case "Reduced Maintenance Costs": {
           const current = getFieldNumber(f, 0);
-          const uahuPlan = getFieldNumber(f, 1);
+          const uahuPlan = 5000;
           total = Math.max(0, current - uahuPlan);
           break;
         }
 
         case "Increased Ticket Sales": {
-          // no_of_annual_patrons * projected_patronage_increase * average_ticket_profit
           const patrons = getFieldNumber(f, 0);
-          const increasePct = getFieldNumber(f, 1);
-          const avgProfit = getFieldNumber(f, 2);
+          const avgProfit = getFieldNumber(f, 1);
+          const increasePct = 1;
           total = patrons * (increasePct / 100) * avgProfit;
           break;
         }
 
         case "Avoided Revenue Loss": {
-          // revenue_per_show * no_of_at_risk_shows_annually * reduced_probability_of_failure
           const revenuePerShow = getFieldNumber(f, 0);
           const atRiskShows = getFieldNumber(f, 1);
-          const reducedFailurePct = getFieldNumber(f, 2);
-          total = revenuePerShow * atRiskShows * (reducedFailurePct / 100);
+          const avgFailure = 3;
+          const uahuFailure = 1;
+          const deltaFailure = (avgFailure - uahuFailure) / 100;
+          total = revenuePerShow * atRiskShows * deltaFailure;
           break;
         }
 
         case "Increased Recyclability": {
-          // Simple demo: no_of_hvac_units_required * cost_saved_by_recyclability
           const hvacUnits = getFieldNumber(f, 0);
-          const costSaved = getFieldNumber(f, 3);
-          total = hvacUnits * costSaved;
+          const avgRate = 40;
+          const uahuRate = 60;
+          const costSavedPerUnit = 5000;
+          const deltaRate = (uahuRate - avgRate) / 100;
+          total = hvacUnits * deltaRate * costSavedPerUnit;
           break;
         }
 
         case "Embodied Carbon Reduction": {
-          // no_of_hvac_units_required * hvac_average_emissions * uahu_emission_reduction_rate * carbon_credit_tax_cost
           const hvacUnits = getFieldNumber(f, 0);
-          const avgEmissions = getFieldNumber(f, 1);
-          const reductionPct = getFieldNumber(f, 2);
-          const carbonCost = getFieldNumber(f, 3);
-          const avoided = hvacUnits * avgEmissions * (reductionPct / 100);
-          total = avoided * carbonCost;
+          const avgEmissions = 5000;
+          const reductionPct = 30;
+          const carbonCost = 0.08;
+          const emissionsReducedPerUnit = avgEmissions * (reductionPct / 100);
+          total = hvacUnits * emissionsReducedPerUnit * carbonCost;
           break;
         }
 
         default: {
-          // Fallback: sum all numeric fields
           total = Object.values(f).reduce((acc, field) => {
             const raw = field.value;
             const n =
@@ -187,9 +178,8 @@ export const PresentApp: React.FC = () => {
       res[vadName] = total;
     });
 
-    // Aggregate headline metrics (these keys match the default ResultCard labels)
     const totalAnnualValue = Object.values(res).reduce((acc, n) => acc + (Number.isFinite(n) ? n : 0), 0);
-    const totalInvestments = totalAnnualValue * 0.3; // demo assumption
+    const totalInvestments = totalAnnualValue * 0.3;
     const netBenefit = totalAnnualValue - totalInvestments;
     const roi = totalInvestments === 0 ? 0 : netBenefit / totalInvestments;
 
@@ -265,7 +255,6 @@ export const PresentApp: React.FC = () => {
         <InputPage
           vadNames={selectedVADs}
           onCalculate={handleCalculate}
-          // Capture live input changes from the InputsRenderer so we can calculate later
           onInputsChange={setInputValues}
         />
       )}

@@ -1,10 +1,9 @@
-// src/present/InputsRenderer.tsx
 import React, { useState } from "react";
 import { VAD_INPUT_CONFIGS } from "../vadInputs";
 import type { VADInputValue } from "../evalContext";
 
 interface InputsRendererProps {
-  vadNames: string[]; // List of VAD names to render
+  vadNames: string[]; 
   onInputsChange?: (inputs: VADInputValue) => void;
 }
 

@@ -1,4 +1,4 @@
-// src/theme.ts
+
 import type { ThemeConfig } from "./types";
 
 export const lightTheme: ThemeConfig = {
@@ -15,5 +15,4 @@ export const darkTheme: ThemeConfig = {
   text: "#ffffff",
 };
 
-// Default to light theme
 export const defaultTheme = lightTheme;

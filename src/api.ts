@@ -1,4 +1,3 @@
-// src/api.ts
 import type {
   ProjectBuildConfig,
   VADId,
@@ -28,7 +27,6 @@ export async function loadBuildConfig(
   }
 }
 
-// Dummy eval call
 export async function calculateFromEval(
   vads: VADId[],
   inputs: Record<VADId, VADInputValues>

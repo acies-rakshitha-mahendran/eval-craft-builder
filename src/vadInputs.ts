@@ -1,4 +1,3 @@
-// src/vadInputs.ts
 export type InputFieldType = "number" | "text" | "dropdown";
 
 export interface InputField {
@@ -15,178 +14,94 @@ export interface VADInputConfig {
 }
 
 export const VAD_INPUT_CONFIGS: Record<string, VADInputConfig> = {
-  "Reduced Maintenance Cost": {
-    vadName: "Reduced Maintenance Cost",
-    fields: [
-      {
-        label: "cost_of_current_maintenance_contract_per_year",
-        type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
-        defaultUOM: "$",
-      },
-      {
-        label: "cost_of_uahu_predictive_maintenance_plan_per_year",
-        type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
-        defaultUOM: "$",
-      },
-    ],
-  },
-  "Avoided Revenue Loss": {
-    vadName: "Avoided Revenue Loss",
-    fields: [
-      {
-        label: "revenue_per_show",
-        type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
-        defaultUOM: "$",
-      },
-      {
-        label: "no_of_at_risk_shows_annually",
-        type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
-        defaultUOM: "Number",
-      },
-      {
-        label: "reduced_probability_of_failure",
-        type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
-        defaultUOM: "%",
-      },
-    ],
-  },
-  "Increased Ticket Sales": {
-    vadName: "Increased Ticket Sales",
-    fields: [
-      {
-        label: "no_of_annual_patrons",
-        type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
-        defaultUOM: "Number",
-      },
-      {
-        label: "projected_patronage_increase",
-        type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
-        defaultUOM: "%",
-      },
-      {
-        label: "average_ticket_profit",
-        type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
-        defaultUOM: "$",
-      },
-    ],
-  },
-  "Increased Recyclability": {
-    vadName: "Increased Recyclability",
-    fields: [
-      {
-        label: "no_of_hvac_units_required",
-        type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
-        defaultUOM: "Number",
-      },
-      {
-        label: "uahu_recyclability_rate",
-        type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
-        defaultUOM: "%",
-      },
-      {
-        label: "average_recyclability_rate",
-        type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
-        defaultUOM: "%",
-      },
-      {
-        label: "cost_saved_by_recyclability",
-        type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
-        defaultUOM: "$",
-      },
-    ],
-  },
-  "Cost Consumption": {
-    vadName: "Cost Consumption",
-    fields: [
-      {
-        label: "numbers",
-        type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
-        defaultUOM: "Number",
-      },
-    ],
-  },
-  "Embodied Carbon Reduction": {
-    vadName: "Embodied Carbon Reduction",
-    fields: [
-      {
-        label: "no_of_hvac_units_required",
-        type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
-        defaultUOM: "Number",
-      },
-      {
-        label: "hvac_average_emissions",
-        type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
-        defaultUOM: "Number",
-      },
-      {
-        label: "uahu_emission_reduction_rate",
-        type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
-        defaultUOM: "%",
-      },
-      {
-        label: "carbon_credit_tax_cost",
-        type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
-        defaultUOM: "$",
-      },
-    ],
-  },
   "Reduced Electricity Consumption": {
     vadName: "Reduced Electricity Consumption",
     fields: [
       {
-        label: "current_annual_hvac_electricity_consumption",
+        label: "Current Annual HVAC kWh Consumption",
         type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
+        placeholder: "e.g. 1020000",
+        options: ["kWh", "Number"],
         defaultUOM: "kWh",
       },
+    ],
+  },
+
+  "Reduced Maintenance Costs": {
+    vadName: "Reduced Maintenance Costs",
+    fields: [
       {
-        label: "uahu_energy_reduction_percentage",
+        label: "Cost of Current Maintenance Contract per year",
         type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
-        defaultUOM: "%",
+        placeholder: "e.g. 12000",
+        options: ["$", "Number"],
+        defaultUOM: "$",
+      },
+    ],
+  },
+
+  "Increased Ticket Sales": {
+    vadName: "Increased Ticket Sales",
+    fields: [
+      {
+        label: "Annual Patrons",
+        type: "number",
+        placeholder: "e.g. 150000",
+        options: ["Number"],
+        defaultUOM: "Number",
       },
       {
-        label: "electricity_cost_per_kwh",
+        label: "Average Ticket Profit",
         type: "number",
-        placeholder: "Enter value",
-        options: ["$", "Number", "%", "kWh"],
+        placeholder: "e.g. 12",
+        options: ["$", "Number"],
         defaultUOM: "$",
+      },
+    ],
+  },
+
+  "Avoided Revenue Loss": {
+    vadName: "Avoided Revenue Loss",
+    fields: [
+      {
+        label: "Revenue per Show",
+        type: "number",
+        placeholder: "e.g. 18000",
+        options: ["$", "Number"],
+        defaultUOM: "$",
+      },
+      {
+        label: "Number of At-Risk Shows Annually",
+        type: "number",
+        placeholder: "e.g. 52",
+        options: ["Number"],
+        defaultUOM: "Number",
+      },
+    ],
+  },
+
+  "Increased Recyclability": {
+    vadName: "Increased Recyclability",
+    fields: [
+      {
+        label: "Number of HVAC units required",
+        type: "number",
+        placeholder: "e.g. 10",
+        options: ["Number"],
+        defaultUOM: "Number",
+      },
+    ],
+  },
+
+  "Embodied Carbon Reduction": {
+    vadName: "Embodied Carbon Reduction",
+    fields: [
+      {
+        label: "Number of HVAC units required",
+        type: "number",
+        placeholder: "e.g. 10",
+        options: ["Number"],
+        defaultUOM: "Number",
       },
     ],
   },

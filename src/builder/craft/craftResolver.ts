@@ -1,4 +1,3 @@
-// src/builder/craft/craftResolver.ts
 import {
   Container,
   TitleBlock,

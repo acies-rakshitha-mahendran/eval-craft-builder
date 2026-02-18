@@ -1,4 +1,3 @@
-// src/types.ts
 export type ThemeMode = "light" | "dark" | "custom";
 
 export interface ThemeConfig {
@@ -24,7 +23,6 @@ export interface EvalResults {
   [key: string]: number;
 }
 
-// Craft.js serialized layout is just JSON string
 export type CraftLayout = string | null;
 
 export interface ProjectBuildConfig {

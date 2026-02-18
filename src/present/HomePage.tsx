@@ -1,4 +1,3 @@
-// src/present/HomePage.tsx
 import React from "react";
 import { Editor, Frame } from "@craftjs/core";
 import { craftResolver } from "../builder/craft/craftResolver";

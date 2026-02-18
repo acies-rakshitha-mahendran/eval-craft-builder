@@ -1,4 +1,3 @@
-// src/builder/HomeBuilderPage.tsx
 import React from "react";
 import { CraftEditorShell } from "./craft/CraftEditorShell";
 import type { CraftLayout } from "../types";
@@ -29,7 +28,6 @@ export const HomeBuilderPage: React.FC<Props> = ({
         }}
       >
         <div style={{ fontSize: 13, opacity: 0.8 }}>Home page builder</div>
-        {/* Theme is now controlled globally via the top-level switch in BuildApp. */}
       </div>
       <CraftEditorShell
         mode="home"

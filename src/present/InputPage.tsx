@@ -1,12 +1,10 @@
-// src/present/InputPage.tsx
 import React from "react";
 import { InputsRenderer } from "./InputsRenderer";
 import type { VADInputValue } from "../evalContext";
 
 type Props = {
-  vadNames: string[]; // Array of VAD names from build layout
+  vadNames: string[]; 
   onCalculate: () => void;
-  // Bubble up raw input values so PresentApp can perform calculations
   onInputsChange?: (inputs: VADInputValue) => void;
 };
 
@@ -16,7 +14,14 @@ export const InputPage: React.FC<Props> = ({
   onInputsChange,
 }) => {
   return (
-    <div className="present-body" style={{ padding: "1.5rem" }}>
+    <div
+      className="present-body"
+      style={{
+        padding: "1.5rem",
+        overflowY: "auto",
+        maxHeight: "100%",
+      }}
+    >
       <div style={{ marginBottom: "2rem" }}>
         <h2 style={{ margin: "0 0 0.5rem 0", fontSize: "18px", fontWeight: 600 }}>
           Enter Inputs

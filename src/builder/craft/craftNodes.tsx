@@ -1,15 +1,13 @@
-// src/builder/craft/craftNodes.tsx
 import React from "react";
 import { useNode } from "@craftjs/core";
 import { ResultsContext } from "../../resultsContext";
 import { EvalContext } from "../../evalContext";
-import { VAD_INPUT_CONFIGS } from "../../vadInputs";
+import { VAD_VARIABLES } from "../../vadVariables";
 
 type BaseProps = {
   children?: React.ReactNode;
 };
 
-// Container (canvas root)
 export const Container: React.FC<
   BaseProps & { padding?: number; align?: "left" | "center" | "right"; backgroundColor?: string; borderRadius?: number; minHeight?: number }
 > = ({ children, padding = 24, align = "left", backgroundColor, borderRadius = 20, minHeight = 400 }) => {
@@ -41,7 +39,6 @@ export const Container: React.FC<
   props: { padding: 24, align: "left", borderRadius: 20, minHeight: 400 },
 };
 
-// Title
 export const TitleBlock: React.FC<{ text?: string; align?: string; fontSize?: number; color?: string; backgroundColor?: string }> = ({
   text = "Enter title",
   align = "left",
@@ -81,7 +78,6 @@ export const TitleBlock: React.FC<{ text?: string; align?: string; fontSize?: nu
   related: {},
 };
 
-// Subtitle
 export const SubtitleBlock: React.FC<{ text?: string; fontSize?: number; color?: string; backgroundColor?: string }> = ({
   text = "Enter subtitle",
   fontSize = 14,
@@ -114,7 +110,6 @@ export const SubtitleBlock: React.FC<{ text?: string; fontSize?: number; color?:
   props: { text: "Enter subtitle", fontSize: 14, color: "#000000" },
 };
 
-// Button
 export const ButtonBlock: React.FC<{ label?: string; fontSize?: number; color?: string; backgroundColor?: string; padding?: number; borderRadius?: number }> = ({
   label = "Enter button label",
   fontSize = 14,
@@ -154,7 +149,6 @@ export const ButtonBlock: React.FC<{ label?: string; fontSize?: number; color?: 
   props: { label: "Enter button label", fontSize: 14, color: "#ffffff", backgroundColor: "#55883B", padding: 10 },
 };
 
-// Logo
 export const LogoBlock: React.FC<{ text?: string; fontSize?: number; color?: string; backgroundColor?: string }> = ({ 
   text = "Enter logo text",
   fontSize = 13,
@@ -203,7 +197,6 @@ export const LogoBlock: React.FC<{ text?: string; fontSize?: number; color?: str
   props: { text: "Enter logo text", fontSize: 13, color: "#000000" },
 };
 
-// Image
 export const ImageBlock: React.FC<{ src?: string; alt?: string }> = ({
   src = "https://via.placeholder.com/400x200/1e3a8a/e5e7eb?text=Image",
   alt = "Placeholder",
@@ -235,7 +228,6 @@ export const ImageBlock: React.FC<{ src?: string; alt?: string }> = ({
   },
 };
 
-// Grid
 export const GridBlock: React.FC<BaseProps & { columns?: number }> = ({
   children,
   columns = 2,
@@ -268,7 +260,6 @@ export const GridBlock: React.FC<BaseProps & { columns?: number }> = ({
   props: { columns: 2 },
 };
 
-// Flex
 export const FlexBlock: React.FC<
   BaseProps & { direction?: "row" | "column"; gap?: number }
 > = ({ children, direction = "row", gap = 12 }) => {
@@ -300,7 +291,6 @@ export const FlexBlock: React.FC<
   props: { direction: "row", gap: 12 },
 };
 
-// VAD Block
 export const VADBlock: React.FC<{ title?: string; vadId?: string; backgroundColor?: string; color?: string }> = ({
   title = "Enter VAD name",
   vadId = "",
@@ -340,7 +330,6 @@ export const VADBlock: React.FC<{ title?: string; vadId?: string; backgroundColo
   props: { title: "Enter VAD name", vadId: "", backgroundColor: "rgba(85, 136, 59, 0.2)", color: "#55883B" },
 };
 
-// Result Card
 export const ResultCard: React.FC<{ label?: string; value?: string; resultKey?: string }> = ({
   label = "Enter metric label",
   value = "Enter value",
@@ -348,8 +337,6 @@ export const ResultCard: React.FC<{ label?: string; value?: string; resultKey?: 
 }) => {
   const { connectors } = useNode();
   const results = React.useContext(ResultsContext);
-
-  // Prefer an explicit resultKey if provided, otherwise fall back to the label.
   const key = (resultKey || label || "").trim();
 
   let displayValue: string = value;
@@ -388,7 +375,6 @@ export const ResultCard: React.FC<{ label?: string; value?: string; resultKey?: 
   props: { label: "Enter metric label", value: "Enter value" },
 };
 
-// Slider Card - for interactive value adjustments on results page
 export const SliderCard: React.FC<{
   label?: string;
   min?: number;
@@ -476,7 +462,6 @@ export const SliderCard: React.FC<{
   props: { label: "Adjust Value", min: 0, max: 100, value: 50, unit: "" },
 };
 
-// Dynamic list of VAD result cards (driven by VAD selection + inputs + computed results)
 export const VADResultsList: React.FC<{
   columns?: number;
   gap?: number;
@@ -498,7 +483,6 @@ export const VADResultsList: React.FC<{
   props: { columns: 2, gap: 12 },
 };
 
-// Non-craft (pure React) version for runtime fallbacks
 export const VADResultsCards: React.FC<{
   columns?: number;
   gap?: number;
@@ -525,7 +509,7 @@ export const VADResultsCards: React.FC<{
         </div>
       ) : (
         vadsToRender.map((vadName) => {
-          const cfg = VAD_INPUT_CONFIGS[vadName];
+          const variables = VAD_VARIABLES[vadName];
           const fieldInputs = inputs?.[vadName] ?? {};
           const computed =
             results && Object.prototype.hasOwnProperty.call(results, vadName) ? results[vadName] : null;
@@ -545,23 +529,34 @@ export const VADResultsCards: React.FC<{
               <div style={{ fontSize: 14, fontWeight: 650, color: "#55883B" }}>{vadName}</div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {(cfg?.fields ?? []).map((field, idx) => {
-                  const entry = fieldInputs[idx];
+                {(variables ?? []).map((variable, idx) => {
+                  let valueToShow: number | string = variable.defaultValue;
+                  let uomToShow: string = variable.defaultUOM;
+
+                  if (variable.isUserInput && variable.inputFieldIndex != null) {
+                    const entry = fieldInputs[variable.inputFieldIndex];
+                    if (entry && entry.value !== "" && entry.value !== null && entry.value !== undefined) {
+                      valueToShow = entry.value;
+                      uomToShow = entry.uom || variable.defaultUOM;
+                    }
+                  }
+
                   const value =
-                    entry?.value === undefined || entry?.value === null || entry?.value === ""
+                    valueToShow === undefined || valueToShow === null || valueToShow === ""
                       ? "—"
-                      : String(entry.value);
-                  const uom = entry?.uom ?? field.defaultUOM ?? "";
+                      : String(valueToShow);
+                  const uom = uomToShow || "";
+                  const showUnit = uom && uom.toLowerCase() !== "number" ? ` ${uom}` : "";
 
                   return (
                     <div
-                      key={`${vadName}-${idx}`}
+                      key={`${vadName}-${variable.label}-${idx}`}
                       style={{ display: "flex", justifyContent: "space-between", gap: 12 }}
                     >
-                      <div style={{ fontSize: 12, opacity: 0.85 }}>{field.label}</div>
+                      <div style={{ fontSize: 12, opacity: 0.85 }}>{variable.label}</div>
                       <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.95, whiteSpace: "nowrap" }}>
                         {value}
-                        {uom ? ` ${uom}` : ""}
+                        {showUnit}
                       </div>
                     </div>
                   );

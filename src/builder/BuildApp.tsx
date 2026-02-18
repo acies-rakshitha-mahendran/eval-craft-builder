@@ -1,4 +1,3 @@
-// src/builder/BuildApp.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { saveBuildConfig } from "../api";
 import type { ProjectBuildConfig, CraftLayout, ThemeConfig } from "../types";
@@ -10,11 +9,9 @@ import { detectSelectedVADsFromLayout } from "../vadSelection";
 
 const DEMO_PROJECT_ID = "demo-project";
 
-// Apply theme to document
 const applyTheme = (theme: ThemeConfig) => {
   const body = document.body;
-  
-  // Set theme attribute for CSS-based switching
+
   if (theme.mode === "light") {
     body.removeAttribute("data-theme");
     body.style.backgroundColor = "#f5f5f5";
@@ -24,14 +21,12 @@ const applyTheme = (theme: ThemeConfig) => {
     body.style.backgroundColor = "#1a1a1a";
     body.style.color = "#ffffff";
   }
-  
-  // Remove old style if it exists
+
   const existingStyle = document.getElementById("theme-style");
   if (existingStyle) {
     existingStyle.remove();
   }
-  
-  // Create and inject CSS rule for canvas frames and components
+
   const styleEl = document.createElement("style");
   styleEl.id = "theme-style";
   
@@ -71,6 +66,12 @@ export const BuildApp: React.FC = () => {
   const [homeData, setHomeData] = useState<CraftLayout>(null);
   const [vadData, setVadData] = useState<CraftLayout>(null);
   const [resultsData, setResultsData] = useState<CraftLayout>(null);
+  const [homeHistory, setHomeHistory] = useState<CraftLayout[]>([]);
+  const [homeFuture, setHomeFuture] = useState<CraftLayout[]>([]);
+  const [vadHistory, setVadHistory] = useState<CraftLayout[]>([]);
+  const [vadFuture, setVadFuture] = useState<CraftLayout[]>([]);
+  const [resultsHistory, setResultsHistory] = useState<CraftLayout[]>([]);
+  const [resultsFuture, setResultsFuture] = useState<CraftLayout[]>([]);
   const [theme, setTheme] = useState(defaultTheme);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -100,6 +101,90 @@ export const BuildApp: React.FC = () => {
     };
     await saveBuildConfig(cfg);
   };
+
+  const pushHistory = (
+    page: "home" | "vads" | "results",
+    prev: CraftLayout | null
+  ) => {
+    if (prev == null) return;
+    const trim = (arr: CraftLayout[]) => (arr.length > 20 ? arr.slice(arr.length - 20) : arr);
+    if (page === "home") {
+      setHomeHistory((h) => trim([...h, prev]));
+      setHomeFuture([]);
+    } else if (page === "vads") {
+      setVadHistory((h) => trim([...h, prev]));
+      setVadFuture([]);
+    } else {
+      setResultsHistory((h) => trim([...h, prev]));
+      setResultsFuture([]);
+    }
+  };
+
+  const handleUndo = () => {
+    if (active === "home") {
+      setHomeHistory((hist) => {
+        if (!hist.length) return hist;
+        const prev = hist[hist.length - 1];
+        setHomeFuture((f) => [homeData, ...f]);
+        setHomeData(prev);
+        return hist.slice(0, -1);
+      });
+    } else if (active === "vads") {
+      setVadHistory((hist) => {
+        if (!hist.length) return hist;
+        const prev = hist[hist.length - 1];
+        setVadFuture((f) => [vadData, ...f]);
+        setVadData(prev);
+        return hist.slice(0, -1);
+      });
+    } else {
+      setResultsHistory((hist) => {
+        if (!hist.length) return hist;
+        const prev = hist[hist.length - 1];
+        setResultsFuture((f) => [resultsData, ...f]);
+        setResultsData(prev);
+        return hist.slice(0, -1);
+      });
+    }
+  };
+
+  const handleRedo = () => {
+    if (active === "home") {
+      setHomeFuture((future) => {
+        if (!future.length) return future;
+        const [next, ...rest] = future;
+        setHomeHistory((h) => [...h, homeData]);
+        setHomeData(next);
+        return rest;
+      });
+    } else if (active === "vads") {
+      setVadFuture((future) => {
+        if (!future.length) return future;
+        const [next, ...rest] = future;
+        setVadHistory((h) => [...h, vadData]);
+        setVadData(next);
+        return rest;
+      });
+    } else {
+      setResultsFuture((future) => {
+        if (!future.length) return future;
+        const [next, ...rest] = future;
+        setResultsHistory((h) => [...h, resultsData]);
+        setResultsData(next);
+        return rest;
+      });
+    }
+  };
+
+  const canUndo =
+    (active === "home" && homeHistory.length > 0) ||
+    (active === "vads" && vadHistory.length > 0) ||
+    (active === "results" && resultsHistory.length > 0);
+
+  const canRedo =
+    (active === "home" && homeFuture.length > 0) ||
+    (active === "vads" && vadFuture.length > 0) ||
+    (active === "results" && resultsFuture.length > 0);
 
   const handleSave = async () => {
     setSaving(true);
@@ -157,7 +242,6 @@ export const BuildApp: React.FC = () => {
           gap: 8,
         }}
       >
-        {/* Stepper-style builder flow */}
         <div className="builder-steps">
           {steps.map((step, index) => {
             const isActive = active === step.id;
@@ -207,7 +291,26 @@ export const BuildApp: React.FC = () => {
         </div>
 
         <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
-          {/* Theme toggle (global, driven from Home builder choice) */}
+          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <button
+              className="glass-button secondary"
+              onClick={handleUndo}
+              disabled={!canUndo}
+              style={{ padding: "0.35rem 0.6rem", fontSize: "11px", opacity: canUndo ? 1 : 0.5 }}
+              title="Undo last change on this screen"
+            >
+              ↺
+            </button>
+            <button
+              className="glass-button secondary"
+              onClick={handleRedo}
+              disabled={!canRedo}
+              style={{ padding: "0.35rem 0.6rem", fontSize: "11px", opacity: canRedo ? 1 : 0.5 }}
+              title="Redo change on this screen"
+            >
+              ↻
+            </button>
+          </div>
           <div className="theme-toggle">
             <span className="theme-toggle-label">Theme</span>
             <label className="theme-switch">
@@ -223,8 +326,6 @@ export const BuildApp: React.FC = () => {
               </span>
             </label>
           </div>
-
-          {/* Zoom Controls */}
           <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
             <button
               className="glass-button secondary"
@@ -244,8 +345,6 @@ export const BuildApp: React.FC = () => {
               +
             </button>
           </div>
-
-          {/* View Mode */}
           <select
             className="view-mode-select"
             value={viewMode}
@@ -255,8 +354,6 @@ export const BuildApp: React.FC = () => {
             <option value="tablet">📱 Tablet</option>
             <option value="desktop">🖥 Desktop</option>
           </select>
-
-          {/* Save & Publish */}
           <button
             className="glass-button secondary"
             onClick={handleSave}
@@ -284,7 +381,10 @@ export const BuildApp: React.FC = () => {
       {active === "home" && (
         <HomeBuilderPage
           data={homeData}
-          onChange={setHomeData}
+          onChange={(next) => {
+            pushHistory("home", homeData);
+            setHomeData(next);
+          }}
           onThemeChange={handleThemeChange}
           zoom={zoom}
           viewportWidth={getViewportWidth()}
@@ -293,7 +393,10 @@ export const BuildApp: React.FC = () => {
       {active === "vads" && (
         <VadBuilderPage
           data={vadData}
-          onChange={setVadData}
+          onChange={(next) => {
+            pushHistory("vads", vadData);
+            setVadData(next);
+          }}
           zoom={zoom}
           viewportWidth={getViewportWidth()}
         />
@@ -301,7 +404,10 @@ export const BuildApp: React.FC = () => {
       {active === "results" && (
         <ResultsBuilderPage
           data={resultsData}
-          onChange={setResultsData}
+          onChange={(next) => {
+            pushHistory("results", resultsData);
+            setResultsData(next);
+          }}
           selectedVADs={selectedVADs}
           zoom={zoom}
           viewportWidth={getViewportWidth()}

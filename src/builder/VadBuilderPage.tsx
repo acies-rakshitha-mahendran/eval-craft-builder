@@ -1,4 +1,3 @@
-// src/builder/VadBuilderPage.tsx
 import React from "react";
 import { CraftEditorShell } from "./craft/CraftEditorShell";
 import type { CraftLayout } from "../types";

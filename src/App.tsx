@@ -1,4 +1,3 @@
-// src/App.tsx
 import React from "react";
 import { Routes, Route, Link, useLocation, useNavigate } from "react-router-dom";
 import { BuildApp } from "./builder/BuildApp";
